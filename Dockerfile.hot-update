@@ -1,0 +1,9 @@
+# Minimal compatibility build: reuse the pinned upstream runtime and dependencies.
+FROM rtb4free/bidder@sha256:282a5e22dfbcb829f066797c0170f83ef8d5a9a1ff8279916977a7827eadd172 AS upstream
+FROM eclipse-temurin:8-jdk@sha256:3a280002b0d1212a62e9f5095c10b07ef3b62c1b13916fe093438e7e9af44b8b AS compiler
+COPY --from=upstream /target/Bidder-0.0.1-SNAPSHOT-jar-with-dependencies.jar /tmp/bidder.jar
+COPY src/com/jacamars/dsp/rtb/db/Database.java /tmp/Database.java
+RUN mkdir /classes && javac -cp /tmp/bidder.jar -d /classes /tmp/Database.java \
+    && jar uf /tmp/bidder.jar -C /classes .
+FROM upstream
+COPY --from=compiler /tmp/bidder.jar /target/Bidder-0.0.1-SNAPSHOT-jar-with-dependencies.jar

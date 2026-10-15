@@ -1,3 +1,5 @@
+// Derived from RTB4FREE/bidder 5cadf9f43fd4fadcd67900a6b41c8bc210131a1f (Apache-2.0).
+// Local fixes: replace the old campaign, and persist raw creative markup.
 package com.jacamars.dsp.rtb.db;
 
 import java.nio.charset.Charset;
@@ -133,11 +135,20 @@ public enum Database {
      * @throws Exception on access errors.
      */
     public Campaign editCampaign(Campaign x) throws Exception  {
+        // WebCampaign constructs Campaign(String), which already JSON-escapes
+        // forwardurl. The database must store raw markup: addCampaign encodes
+        // it again when building the runtime bid. Undo exactly that one layer.
+        for (com.jacamars.dsp.rtb.common.Creative creative : x.creatives) {
+            if (creative.forwardurl != null) {
+                creative.forwardurl = DbTools.mapper.readValue(
+                    "\"" + creative.forwardurl + "\"", String.class);
+            }
+        }
         List<Campaign> list = shared.getCampaigns();
         for (Campaign c : list) {
             if (c.adId.equals(x.adId))  {
                 list.remove(c);
-                list.add(c);
+                list.add(x);
                 update(list);
                 return x;
             }
